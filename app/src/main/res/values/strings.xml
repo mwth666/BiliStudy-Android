@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">B站学习陪伴</string>
+    <string name="listener_label">B站学习陪伴 · 播放监听</string>
+    <string name="notif_channel">学习记录</string>
+</resources>
