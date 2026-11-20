@@ -10,7 +10,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
@@ -28,7 +27,7 @@ public class MainActivity extends Activity {
     private static final int REQ_NOTIF = 43;
 
     private StatsStore store;
-    private TextView status, todayVal, weekVal, monthVal, streakTop, courses, batteryState;
+    private TextView status, todayVal, weekVal, monthVal, streakTop, courses;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,13 +42,9 @@ public class MainActivity extends Activity {
         monthVal = (TextView) findViewById(R.id.monthVal);
         streakTop = (TextView) findViewById(R.id.streakTop);
         courses = (TextView) findViewById(R.id.courses);
-        batteryState = (TextView) findViewById(R.id.batteryState);
 
         findViewById(R.id.btnNotif).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { openNotificationAccess(); }
-        });
-        findViewById(R.id.btnBattery).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { requestIgnoreBattery(); }
         });
         findViewById(R.id.btnImport).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { openFilePicker(); }
@@ -87,10 +82,6 @@ public class MainActivity extends Activity {
         JSONObject st = store.streak();
         streakTop.setText("🔥 " + (st == null ? 0 : st.optInt("current", 0)) + " 天");
 
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        boolean ignoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
-        batteryState.setText(ignoring ? "状态：已关闭电池优化 ✅" : "状态：仍受电池优化限制 ⚠️");
-
         try {
             JSONObject cs = store.courseProgress();
             java.util.Iterator<String> it = cs.keys();
@@ -116,20 +107,6 @@ public class MainActivity extends Activity {
             }
         } catch (Exception e) {
             Toast.makeText(this, "找不到设置页，请在系统设置里搜索「通知使用权」", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void requestIgnoreBattery() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                i.setData(Uri.parse("package:" + getPackageName()));
-                startActivity(i);
-            } else {
-                Toast.makeText(this, "当前系统版本无需设置", Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            Toast.makeText(this, "请在系统设置里手动关闭本应用的电池优化", Toast.LENGTH_LONG).show();
         }
     }
 

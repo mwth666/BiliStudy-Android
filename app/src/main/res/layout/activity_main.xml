@@ -81,7 +81,7 @@
             android:orientation="vertical" android:background="@drawable/bg_card"
             android:layout_marginBottom="12dp">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="① 开启通知读取权（必须）" android:textSize="14sp"
+                android:text="开启通知读取权（必须）" android:textSize="14sp"
                 android:textStyle="bold" android:textColor="@color/text" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="用来读取 B 站的播放位置、时长和倍速。不读聊天、不读短信内容。"
@@ -89,22 +89,6 @@
                 android:layout_marginTop="4dp" />
             <Button android:id="@+id/btnNotif" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="去开启通知读取权"
-                android:background="@drawable/bg_btn_primary" android:textColor="#FFFFFFFF"
-                android:textSize="14sp" android:layout_marginTop="8dp" />
-        </LinearLayout>
-
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:background="@drawable/bg_card"
-            android:layout_marginBottom="12dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="② 关掉电池优化（保活，重要）" android:textSize="14sp"
-                android:textStyle="bold" android:textColor="@color/text" />
-            <TextView android:id="@+id/batteryState" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:text="状态：未知"
-                android:textSize="12sp" android:textColor="@color/muted"
-                android:layout_marginTop="4dp" />
-            <Button android:id="@+id/btnBattery" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:text="关闭电池优化"
                 android:background="@drawable/bg_btn_primary" android:textColor="#FFFFFFFF"
                 android:textSize="14sp" android:layout_marginTop="8dp" />
         </LinearLayout>
