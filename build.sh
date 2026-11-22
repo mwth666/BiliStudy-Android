@@ -28,10 +28,16 @@ echo "[4/5] 转 dex..."
 
 echo "[5/5] 打包 / 对齐 / 签名..."
 python - <<'PY'
-import zipfile, shutil
+import zipfile, shutil, os
 shutil.copy2('build/base.apk', 'build/unsigned.apk')
 with zipfile.ZipFile('build/unsigned.apk', 'a', zipfile.ZIP_DEFLATED) as z:
     z.write('build/dex/classes.dex', 'classes.dex')
+    # 把 assets/ 下的统计页资源打进 APK
+    for root, dirs, files in os.walk('app/src/main/assets'):
+        for f in files:
+            full = os.path.join(root, f)
+            arc = 'assets/' + os.path.relpath(full, 'app/src/main/assets').replace(os.sep, '/')
+            z.write(full, arc)
 PY
 "$BT/zipalign.exe" -f -p 4 build/unsigned.apk build/aligned.apk
 "$BT/apksigner.bat" sign --ks debug.keystore --ks-pass pass:android --ks-key-alias bilistudy \

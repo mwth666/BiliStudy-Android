@@ -106,28 +106,12 @@
                 android:layout_marginTop="8dp" />
         </LinearLayout>
 
-        <!-- 数据合并 -->
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:background="@drawable/bg_card"
-            android:layout_marginBottom="12dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="和电脑插件合并数据" android:textSize="14sp" android:textStyle="bold"
-                android:textColor="@color/text" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="在电脑插件的「查看完整统计」页导出 JSON，传到手机后从这里导入；也可以把手机数据导出给电脑。"
-                android:textSize="12sp" android:textColor="@color/muted" android:layout_marginTop="4dp" />
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:layout_marginTop="8dp">
-                <Button android:id="@+id/btnImport" android:layout_width="0dp" android:layout_weight="1"
-                    android:layout_height="wrap_content" android:text="导入电脑数据"
-                    android:background="@drawable/bg_btn_primary" android:textColor="#FFFFFFFF"
-                    android:textSize="13sp" android:layout_marginRight="4dp" />
-                <Button android:id="@+id/btnExport" android:layout_width="0dp" android:layout_weight="1"
-                    android:layout_height="wrap_content" android:text="导出给电脑"
-                    android:background="@drawable/bg_btn_primary" android:textColor="#FFFFFFFF"
-                    android:textSize="13sp" android:layout_marginLeft="4dp" />
-            </LinearLayout>
-        </LinearLayout>
+        <!-- 完整统计入口 -->
+        <Button android:id="@+id/btnStats" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="查看完整统计 →"
+            android:background="@drawable/bg_btn_primary" android:textColor="#FFFFFFFF"
+            android:textSize="15sp" android:layout_marginBottom="12dp"
+            android:padding="12dp" />
 
         <Button android:id="@+id/btnClear" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:text="清除全部数据"

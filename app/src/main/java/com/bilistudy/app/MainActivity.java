@@ -3,27 +3,19 @@ package com.bilistudy.app;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-
 public class MainActivity extends Activity {
-    private static final int REQ_IMPORT = 42;
     private static final int REQ_NOTIF = 43;
 
     private StatsStore store;
@@ -46,11 +38,8 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnNotif).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { openNotificationAccess(); }
         });
-        findViewById(R.id.btnImport).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { openFilePicker(); }
-        });
-        findViewById(R.id.btnExport).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { exportData(); }
+        findViewById(R.id.btnStats).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { startActivity(new Intent(MainActivity.this, StatsActivity.class)); }
         });
         findViewById(R.id.btnClear).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { confirmClear(); }
@@ -107,58 +96,6 @@ public class MainActivity extends Activity {
             }
         } catch (Exception e) {
             Toast.makeText(this, "找不到设置页，请在系统设置里搜索「通知使用权」", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void openFilePicker() {
-        Intent it = new Intent(Intent.ACTION_GET_CONTENT);
-        it.setType("application/json");
-        it.addCategory(Intent.CATEGORY_OPENABLE);
-        try {
-            startActivityForResult(Intent.createChooser(it, "选择电脑导出的 JSON"), REQ_IMPORT);
-        } catch (Exception e) {
-            Toast.makeText(this, "找不到文件选择器", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int req, int res, Intent data) {
-        super.onActivityResult(req, res, data);
-        if (req == REQ_IMPORT && res == Activity.RESULT_OK && data != null && data.getData() != null) {
-            try {
-                String json = readText(data.getData());
-                int n = store.importJson(json);
-                if (n == -1) Toast.makeText(this, "这份数据已经导入过，已跳过（不会重复计数）", Toast.LENGTH_LONG).show();
-                else if (n == -2) Toast.makeText(this, "解析失败，请确认是插件导出的 JSON", Toast.LENGTH_LONG).show();
-                else Toast.makeText(this, "合并成功：" + n + " 条记录", Toast.LENGTH_LONG).show();
-                render();
-            } catch (Exception e) {
-                Toast.makeText(this, "读取失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-    private String readText(Uri uri) throws Exception {
-        ContentResolver cr = getContentResolver();
-        InputStream in = cr.openInputStream(uri);
-        if (in == null) throw new Exception("无法打开文件");
-        BufferedReader r = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = r.readLine()) != null) sb.append(line).append("\n");
-        r.close();
-        return sb.toString();
-    }
-
-    private void exportData() {
-        String json = store.exportJson();
-        android.content.ClipboardManager cm =
-                (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        if (cm != null) {
-            cm.setPrimaryClip(android.content.ClipData.newPlainText("bili-study-data", json));
-            Toast.makeText(this, "数据已复制到剪贴板，粘贴到微信/QQ发到电脑即可", Toast.LENGTH_LONG).show();
-        } else {
-            new AlertDialog.Builder(this).setTitle("导出数据").setMessage(json).setPositiveButton("好的", null).show();
         }
     }
 

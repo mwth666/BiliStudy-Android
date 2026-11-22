@@ -27,6 +27,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".StatsActivity"
+            android:exported="false"
+            android:label="学习统计"
+            android:theme="@style/AppTheme" />
+
         <!-- 通知监听：捕获 B 站媒体会话 -->
         <service
             android:name=".BiliNotificationListener"

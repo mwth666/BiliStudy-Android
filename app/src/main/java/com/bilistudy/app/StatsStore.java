@@ -51,7 +51,7 @@ public class StatsStore {
     }
 
     private void ensure() {
-        String[] objs = {"bili_daily", "bili_lessons", "bili_checkins", "bili_badges", "imports"};
+        String[] objs = {"bili_daily", "bili_lessons", "bili_checkins", "bili_badges", "bili_courses"};
         for (String k : objs) {
             if (!data.has(k) || data.isNull(k)) {
                 try { data.put(k, new JSONObject()); } catch (JSONException ignored) {}
@@ -62,6 +62,22 @@ public class StatsStore {
                 data.put("bili_streak", new JSONObject("{\"current\":0,\"longest\":0,\"lastDate\":\"\"}"));
             } catch (JSONException ignored) {}
         }
+        migrateLessons();
+    }
+
+    /** 旧版本记录补 bvid/p/courseTitle，保证统计页的课程聚合能识别 */
+    private void migrateLessons() {
+        try {
+            JSONObject lessons = data.getJSONObject("bili_lessons");
+            Iterator<String> it = lessons.keys();
+            while (it.hasNext()) {
+                JSONObject l = lessons.optJSONObject(it.next());
+                if (l == null) continue;
+                if (!l.has("bvid") || l.isNull("bvid")) l.put("bvid", "app:" + md5(l.optString("title", "")));
+                if (!l.has("p") || l.isNull("p")) l.put("p", 1);
+                if (!l.has("courseTitle") || l.isNull("courseTitle")) l.put("courseTitle", l.optString("title", ""));
+            }
+        } catch (Exception ignored) {}
     }
 
     /* ============ 日期工具 ============ */
@@ -114,8 +130,12 @@ public class StatsStore {
             JSONObject l = lessons.optJSONObject(lessonKey);
             if (l == null) {
                 l = new JSONObject();
-                l.put("title", title == null ? "" : title);
-                l.put("courseTitle", title == null ? "" : title);
+                String t = title == null ? "" : title;
+                l.put("title", t);
+                l.put("courseTitle", t);
+                // 手机端拿不到 bvid，用标题指纹代替，让 stats.js 能按课程聚合
+                l.put("bvid", "app:" + md5(t));
+                l.put("p", 1);
                 l.put("duration", duration);
                 l.put("watchedSeconds", 0);
                 l.put("maxPosition", 0);
@@ -205,6 +225,15 @@ public class StatsStore {
             Iterator<String> li = lessons.keys();
             while (li.hasNext()) if (lessons.optJSONObject(li.next()).optBoolean("completed", false)) done++;
             if (done >= 30 && !badges.has("parts30")) badges.put("parts30", System.currentTimeMillis());
+            JSONObject cp = courseProgress();
+            java.util.Iterator<String> ci = cp.keys();
+            while (ci.hasNext()) {
+                JSONObject c = cp.optJSONObject(ci.next());
+                if (c != null && c.optInt("total", 0) >= 1 && c.optInt("done", 0) >= c.optInt("total", 0)) {
+                    if (!badges.has("courseComplete")) badges.put("courseComplete", System.currentTimeMillis());
+                    break;
+                }
+            }
         } catch (JSONException ignored) {}
     }
 
@@ -256,107 +285,17 @@ public class StatsStore {
         return data.optJSONObject("bili_badges");
     }
 
-    /** 导出成插件认识的 JSON（就是 chrome.storage.local 的那几把钥匙）。 */
-    public synchronized String exportJson() {
+    /**
+     * 给统计页提供数据快照。字段与浏览器插件 chrome.storage.local 的结构一致，
+     * 这样能直接复用插件的 core.js / stats.js 渲染逻辑。
+     */
+    public synchronized String snapshotJson() {
         ensure();
-        JSONObject out = new JSONObject();
-        String[] keys = {"bili_daily", "bili_lessons", "bili_checkins", "bili_streak", "bili_badges"};
         try {
-            for (String k : keys) out.put(k, data.get(k));
-            return out.toString(2);
-        } catch (JSONException e) {
+            return data.toString();
+        } catch (Exception e) {
             return "{}";
         }
-    }
-
-    /**
-     * 导入插件导出的 JSON 并合并。
-     * 用内容指纹去重：同一份文件重复导入不会让时长翻倍。
-     */
-    public synchronized int importJson(String json) {
-        if (json == null || json.trim().length() == 0) return 0;
-        try {
-            JSONObject incoming = new JSONObject(json.trim());
-            String fingerprint = md5(json.trim());
-            JSONObject imports = data.getJSONObject("imports");
-            if (imports.optBoolean(fingerprint, false)) return -1; // 已导入过
-            imports.put(fingerprint, true);
-
-            int added = 0;
-            added += mergeDaily(incoming.optJSONObject("bili_daily"));
-            added += mergeLessons(incoming.optJSONObject("bili_lessons"));
-            mergeCheckins(incoming.optJSONObject("bili_checkins"));
-            recalcStreak();
-            recalcBadges();
-            save();
-            return added;
-        } catch (Exception e) {
-            return -2;
-        }
-    }
-
-    private int mergeDaily(JSONObject incoming) {
-        if (incoming == null) return 0;
-        try {
-            JSONObject daily = data.getJSONObject("bili_daily");
-            int n = 0;
-            Iterator<String> it = incoming.keys();
-            while (it.hasNext()) {
-                String day = it.next();
-                JSONObject src = incoming.optJSONObject(day);
-                if (src == null) continue;
-                JSONObject dst = daily.optJSONObject(day);
-                if (dst == null) { dst = new JSONObject(); dst.put("lessonKeys", new JSONArray()); }
-                dst.put("seconds", round1(dst.optDouble("seconds", 0) + src.optDouble("seconds", 0)));
-                JSONArray sk = src.optJSONArray("lessonKeys");
-                JSONArray dk = dst.optJSONArray("lessonKeys");
-                if (dk == null) { dk = new JSONArray(); dst.put("lessonKeys", dk); }
-                if (sk != null) for (int i = 0; i < sk.length(); i++) {
-                    String key = sk.optString(i, "");
-                    if (key.length() > 0 && !contains(dk, key)) dk.put(key);
-                }
-                daily.put(day, dst);
-                n++;
-            }
-            return n;
-        } catch (JSONException e) { return 0; }
-    }
-
-    private int mergeLessons(JSONObject incoming) {
-        if (incoming == null) return 0;
-        try {
-            JSONObject lessons = data.getJSONObject("bili_lessons");
-            int n = 0;
-            Iterator<String> it = incoming.keys();
-            while (it.hasNext()) {
-                String key = it.next();
-                JSONObject src = incoming.optJSONObject(key);
-                if (src == null) continue;
-                JSONObject dst = lessons.optJSONObject(key);
-                if (dst == null) { lessons.put(key, src); n++; continue; }
-                dst.put("watchedSeconds", round1(dst.optDouble("watchedSeconds", 0) + src.optDouble("watchedSeconds", 0)));
-                dst.put("maxPosition", Math.max(dst.optDouble("maxPosition", 0), src.optDouble("maxPosition", 0)));
-                if (src.optBoolean("completed", false)) {
-                    dst.put("completed", true);
-                    if (dst.optLong("completedAt", 0) == 0) dst.put("completedAt", src.optLong("completedAt", 0));
-                }
-                lessons.put(key, dst);
-                n++;
-            }
-            return n;
-        } catch (JSONException e) { return 0; }
-    }
-
-    private void mergeCheckins(JSONObject incoming) {
-        if (incoming == null) return;
-        try {
-            JSONObject checkins = data.getJSONObject("bili_checkins");
-            Iterator<String> it = incoming.keys();
-            while (it.hasNext()) {
-                String k = it.next();
-                if (incoming.optBoolean(k, false)) checkins.put(k, true);
-            }
-        } catch (JSONException ignored) {}
     }
 
     public synchronized void clearAll() {
